@@ -1,14 +1,11 @@
 {
-  "name": "discord-music-player",
-  "version": "8.3.1",
+  "name": "@jadestudios/discord-music-player",
+  "version": "8.3.1-az1",
   "description": "Complete framework to facilitate music commands using discord.js v13",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "test": "jest test/test.js",
-    "docs:test": "docgen --jsdoc jsdoc.json --source src/*.ts src/**/*.ts --custom docs/custom.yml",
-    "docs": "docgen --jsdoc jsdoc.json --source src/*.ts src/**/*.ts --custom docs/custom.yml --output docs/docs.json"
+    "build": "tsc"
   },
   "keywords": [
     "music",
@@ -22,10 +19,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SushiBtw/discord-music-player.git"
+    "url": "git+https://github.com/jadestudios/discord-music-player.git"
   },
   "bugs": {
-    "url": "https://github.com/SushiBtw/discord-music-player/issues"
+    "url": "https://github.com/jadestudios/discord-music-player/issues"
   },
   "homepage": "https://discord-music-player.js.org/",
   "author": "SushiBtw",
@@ -35,14 +32,13 @@
     "@discordjs/voice": "^0.6.0",
     "axios": "^0.22.0",
     "axios-retry": "^3.2.0",
-    "discord-ytdl-core": "^5.0.4",
     "domhandler": "^4.2.2",
     "ffmpeg-static": "^4.4.0",
     "htmlparser2": "^7.1.2",
     "libsodium-wrappers": "^0.7.9",
     "spotify-url-info": "^2.2.3",
+    "youtube-dl-exec": "^2.0.2",
     "youtubei": "^0.0.1-rc.27",
-    "ytdl-core": "^4.9.1",
     "ytsr": "^3.5.3"
   },
   "devDependencies": {

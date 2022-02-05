@@ -1,10 +1,12 @@
-import {Guild, GuildChannelResolvable, Snowflake, StageChannel, VoiceChannel} from "discord.js";
-import {StreamConnection} from "../voice/StreamConnection";
-import {AudioResource,
+import { Guild, GuildChannelResolvable, StageChannel, VoiceChannel } from "discord.js";
+import { StreamConnection } from "../voice/StreamConnection";
+import {
+    AudioResource,
     createAudioResource,
-    DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, StreamType, VoiceConnectionStatus } from "@discordjs/voice";
-import ytdl from "discord-ytdl-core";
+    entersState, joinVoiceChannel, StreamType, VoiceConnectionStatus
+} from "@discordjs/voice";
 import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions } from "..";
+import youtubeDlExec from "youtube-dl-exec";
 
 export class Queue {
     public player: Player;
@@ -88,7 +90,7 @@ export class Queue {
 
         this.guild = guild;
 
-        this.options = {...DefaultPlayerOptions, ...options};
+        this.options = { ...DefaultPlayerOptions, ...options };
     }
 
     /**
@@ -97,13 +99,13 @@ export class Queue {
      * @returns {Promise<Queue>}
      */
     async join(channelId: GuildChannelResolvable) {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
-        if(this.connection)
+        if (this.connection)
             return this;
         const channel = this.guild.channels.resolve(channelId) as StageChannel | VoiceChannel;
-        if(!channel)
+        if (!channel)
             throw new DMPError(DMPErrors.UNKNOWN_VOICE);
         if (!channel.isVoice())
             throw new DMPError(DMPErrors.CHANNEL_TYPE_INVALID);
@@ -136,7 +138,7 @@ export class Queue {
                     this.player.emit('songFirst', this, this.nowPlaying);
             })
             .on('end', async (resource) => {
-                if(this.destroyed){
+                if (this.destroyed) {
                     this.player.emit('queueDestroyed', this);
                     return;
                 }
@@ -145,9 +147,9 @@ export class Queue {
                 if (this.songs.length === 0 && this.repeatMode === RepeatMode.DISABLED) {
 
                     this.player.emit('queueEnd', this);
-                    if(this.options.leaveOnEnd)
+                    if (this.options.leaveOnEnd)
                         setTimeout(() => {
-                            if(!this.isPlaying)
+                            if (!this.isPlaying)
                                 this.leave();
                         }, this.options.timeout)
                     return;
@@ -179,9 +181,9 @@ export class Queue {
      * @returns {Promise<Song>}
      */
     async play(search: Song | string, options: PlayOptions & { immediate?: boolean, seek?: number, data?: any } = DefaultPlayOptions): Promise<Song> {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.connection)
+        if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
         options = Object.assign(
             {} as PlayOptions,
@@ -194,56 +196,49 @@ export class Queue {
             .catch(error => {
                 throw new DMPError(error);
             });
-        if(!options.immediate)
+        if (!options.immediate)
             song.data = data;
 
         let songLength = this.songs.length;
-        if(!options?.immediate && songLength !== 0) {
-            if(options?.index! >= 0 && ++options.index! <= songLength)
+        if (!options?.immediate && songLength !== 0) {
+            if (options?.index! >= 0 && ++options.index! <= songLength)
                 this.songs.splice(options.index!, 0, song);
             else this.songs.push(song);
             this.player.emit('songAdd', this, song);
             return song;
-        } else if(!options?.immediate) {
+        } else if (!options?.immediate) {
             song._setFirst();
-            if(options?.index! >= 0 && ++options.index! <= songLength)
+            if (options?.index! >= 0 && ++options.index! <= songLength)
                 this.songs.splice(options.index!, 0, song);
             else this.songs.push(song);
             this.player.emit('songAdd', this, song);
-        } else if(options.seek)
+        } else if (options.seek)
             this.songs[0].seekTime = options.seek;
 
-        let quality = this.options.quality;
+        //let quality = this.options.quality;
         song = this.songs[0];
-        if(song.seekTime)
+        if (song.seekTime)
             options.seek = song.seekTime;
 
-        let stream = ytdl(song.url, {
-            requestOptions: this.player.options.ytdlRequestOptions ?? {},
-            opusEncoded: false,
-            seek: options.seek ? options.seek / 1000 : 0,
-            fmt: 's16le',
-            encoderArgs: [],
-            quality: quality!.toLowerCase() === 'low' ? 'lowestaudio' : 'highestaudio',
-            highWaterMark: 1 << 25,
-            filter: 'audioonly'
-        })
-            .on('error', (error: { message: string; }) => {
-                if(!/Status code|premature close/i.test(error.message))
-                    this.player.emit('error', error.message === 'Video unavailable' ? 'VideoUnavailable' : error.message, this);
-               return;
+        youtubeDlExec(song.url, {
+            output: '-',
+            quiet: true,
+            format: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio',
+            limitRate: '100K',
+        }, {
+            stdio: ['ignore', 'pipe', 'ignore']
+        }).then(stream => {
+            const rs = createAudioResource(stream.stdout);
+            const resource: AudioResource<Song> = this.connection!.createAudioStream(rs, {
+                metadata: song,
+                inputType: StreamType.Raw
             });
-
-        const resource: AudioResource<Song> = this.connection.createAudioStream(stream, {
-           metadata: song,
-           inputType: StreamType.Raw
-        });
-
-        setTimeout(_ => {
-            this.connection!.playAudioStream(resource)
-                .then(__ => {
-                    this.setVolume(this.options.volume!);
-                })
+            setTimeout(_ => {
+                this.connection!.playAudioStream(resource)
+                    .then(__ => {
+                        this.setVolume(this.options.volume!);
+                    })
+            });
         });
 
         return song;
@@ -256,9 +251,9 @@ export class Queue {
      * @returns {Promise<Playlist>}
      */
     async playlist(search: Playlist | string, options: PlaylistOptions & { data?: any } = DefaultPlaylistOptions): Promise<Playlist> {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.connection)
+        if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
         options = Object.assign(
             {} as PlaylistOptions & { data?: any },
@@ -273,7 +268,7 @@ export class Queue {
         this.songs.push(...playlist.songs);
         this.player.emit('playlistAdd', this, playlist);
 
-        if(songLength === 0) {
+        if (songLength === 0) {
             playlist.songs[0]._setFirst();
             await this.play(playlist.songs[0], { immediate: true });
         }
@@ -287,12 +282,12 @@ export class Queue {
      * @returns {boolean}
      */
     async seek(time: number) {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.isPlaying)
+        if (!this.isPlaying)
             throw new DMPError(DMPErrors.NOTHING_PLAYING);
 
-        if(isNaN(time))
+        if (isNaN(time))
             return;
         if (time < 1)
             time = 0;
@@ -313,9 +308,9 @@ export class Queue {
      * @returns {Song}
      */
     skip(index: number = 0): Song {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.connection)
+        if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
         this.songs.splice(1, index);
 
@@ -329,10 +324,10 @@ export class Queue {
      * @returns {void}
      */
     stop(): void {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
-        if(this.options.leaveOnStop){
+        if (this.options.leaveOnStop) {
             setTimeout(() => {
                 this.leave();
             }, this.options.timeout);
@@ -346,8 +341,8 @@ export class Queue {
      * Shuffles the Queue
      * @returns {Song[]}
      */
-    shuffle(): Song[]|undefined {
-        if(this.destroyed)
+    shuffle(): Song[] | undefined {
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
         let currentSong = this.songs.shift();
@@ -362,12 +357,12 @@ export class Queue {
      * @param {boolean} [state=true] Pause state, if none it will pause the Song
      * @returns {boolean}
      */
-    setPaused(state: boolean = true): boolean|undefined {
-        if(this.destroyed)
+    setPaused(state: boolean = true): boolean | undefined {
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.connection)
+        if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-        if(!this.isPlaying)
+        if (!this.isPlaying)
             throw new DMPError(DMPErrors.NOTHING_PLAYING);
 
         return this.connection.setPauseState(state);
@@ -378,8 +373,8 @@ export class Queue {
      * @param {number} index
      * @returns {Song|undefined}
      */
-    remove(index: number): Song|undefined {
-        if(this.destroyed)
+    remove(index: number): Song | undefined {
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
         return this.songs.splice(index, 1)[0];
@@ -400,11 +395,11 @@ export class Queue {
      * @type {boolean}
      */
     get paused(): boolean {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.connection)
+        if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-        if(!this.isPlaying)
+        if (!this.isPlaying)
             throw new DMPError(DMPErrors.NOTHING_PLAYING);
 
         return this.connection.paused;
@@ -416,9 +411,9 @@ export class Queue {
      * @returns {boolean}
      */
     setVolume(volume: number) {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.connection)
+        if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
 
         this.options.volume = volume;
@@ -438,11 +433,11 @@ export class Queue {
      * @returns {void}
      */
     clearQueue() {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
         let currentlyPlaying = this.songs.shift();
-        this.songs = [ currentlyPlaying! ];
+        this.songs = [currentlyPlaying!];
     }
 
     /**
@@ -451,7 +446,7 @@ export class Queue {
      * @returns {boolean}
      */
     setRepeatMode(repeatMode: RepeatMode): boolean {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
         if (![RepeatMode.DISABLED, RepeatMode.QUEUE, RepeatMode.SONG].includes(repeatMode))
@@ -468,9 +463,9 @@ export class Queue {
      * @returns {ProgressBar}
      */
     createProgressBar(options?: ProgressBarOptions): ProgressBar {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!this.isPlaying)
+        if (!this.isPlaying)
             throw new DMPError(DMPErrors.NOTHING_PLAYING);
 
         return new ProgressBar(this, options);
@@ -482,7 +477,7 @@ export class Queue {
      * @returns {void}
      */
     setData(data: any): void {
-        if(this.destroyed)
+        if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
         this.data = data;

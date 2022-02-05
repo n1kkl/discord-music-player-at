@@ -1,10 +1,9 @@
 import {
     Song, Queue, Playlist,
-    PlayerOptions, PlayOptions, PlaylistOptions, DMPErrors,
-    DefaultPlayerOptions, DefaultPlayOptions, DefaultPlaylistOptions,
+    PlayOptions, PlaylistOptions, DMPErrors,
+    DefaultPlayOptions, DefaultPlaylistOptions,
     RawSong, RawPlaylist,
 } from "..";
-import { User } from "discord.js";
 import YTSR, { Video } from 'ytsr';
 import {getData, getPreview } from "spotify-url-info";
 import { getSong, getPlaylist } from "./AppleUtils";
