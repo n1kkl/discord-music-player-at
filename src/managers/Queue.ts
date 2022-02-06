@@ -2,11 +2,10 @@ import { Guild, GuildChannelResolvable, StageChannel, VoiceChannel } from "disco
 import { StreamConnection } from "../voice/StreamConnection";
 import {
     AudioResource,
-    createAudioResource,
-    entersState, joinVoiceChannel, StreamType, VoiceConnectionStatus
+    entersState, joinVoiceChannel, VoiceConnectionStatus
 } from "@discordjs/voice";
 import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions } from "..";
-import youtubeDlExec from "youtube-dl-exec";
+import { stream } from "play-dl";
 
 export class Queue {
     public player: Player;
@@ -215,30 +214,27 @@ export class Queue {
         } else if (options.seek)
             this.songs[0].seekTime = options.seek;
 
-        //let quality = this.options.quality;
+        let quality = this.options.quality;
         song = this.songs[0];
-        if (song.seekTime)
+        if (song.seekTime) //If on repeat, song will start from the same seeked spot
             options.seek = song.seekTime;
 
-        youtubeDlExec(song.url, {
-            output: '-',
-            quiet: true,
-            format: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio',
-            limitRate: '100K',
-        }, {
-            stdio: ['ignore', 'pipe', 'ignore']
-        }).then(stream => {
-            const rs = createAudioResource(stream.stdout);
-            const resource: AudioResource<Song> = this.connection!.createAudioStream(rs, {
-                metadata: song,
-                inputType: StreamType.Raw
-            });
-            setTimeout(_ => {
-                this.connection!.playAudioStream(resource)
-                    .then(__ => {
-                        this.setVolume(this.options.volume!);
-                    })
-            });
+
+        let streamSong = await stream(song.url, {
+            seek: options.seek ? options.seek / 1000 : 0,
+            quality: quality!.toLowerCase() === 'low' ? 1 : 2,
+        });
+
+        const resource: AudioResource<Song> = this.connection.createAudioStream(streamSong.stream, {
+            metadata: song,
+            inputType: streamSong.type
+         });
+
+        setTimeout(_ => {
+            this.connection!.playAudioStream(resource)
+                .then(__ => {
+                    this.setVolume(this.options.volume!);
+                })
         });
 
         return song;
@@ -327,13 +323,13 @@ export class Queue {
         if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
+        this.clearQueue();
+        this.skip();
+
         if (this.options.leaveOnStop) {
             setTimeout(() => {
                 this.leave();
             }, this.options.timeout);
-        } else {
-            this.clearQueue()
-            this.skip()
         }
     }
 
@@ -489,7 +485,7 @@ export class Queue {
      */
     leave(): void {
         this.destroyed = true;
-        this.connection?.leave();
+        this.connection!.leave();
         this.player.deleteQueue(this.guild.id);
     }
 

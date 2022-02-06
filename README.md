@@ -1,8 +1,11 @@
-# Discord Music Player
-![npm](https://img.shields.io/npm/dt/discord-music-player?style=for-the-badge)
-![npm](https://img.shields.io/npm/v/discord-music-player?style=for-the-badge)
-![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/SushiBtw/discord-music-player?color=%2348aaf1&style=for-the-badge)
+# @jadestudios/Discord-Music-Player
 
+This is a fork of Discord Music Player by SushiBtw. This fork is changed to use play-dl instead of ytdl-core, and some under-the-hood changes. It is completely compatible with DMP as known of the user facing functions/ errors will be changed. This fork will also implement all upstream releases.
+
+Latest working: az13+
+Anything lower is unstable or doesn't work
+
+---
 ### Note: This is the v8 version of Discord Music Player for Discord.JS v13!
 
 Discord Music Player is a powerful [Node.js](https://nodejs.org) module that allows you to easily implement music commands.
@@ -18,7 +21,7 @@ Package from version v7.0.0 is fully maintained by [SushiBtw](https://github.com
 # Installation
 *Node.JS v16 or newer is required to run this module.*
 ```sh
-npm install --save discord-music-player
+npm install --save @jadestudios/discord-music-player
 ```
 Install **@discordjs/opus**:
 ```sh
