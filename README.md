@@ -1,5 +1,8 @@
 # @jadestudios/Discord-Music-Player
 
+
+[![CodeQL](https://github.com/jadestudios/discord-music-player/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jadestudios/discord-music-player/actions/workflows/codeql-analysis.yml)
+
 This is a fork of Discord Music Player by SushiBtw. This fork is changed to use play-dl instead of ytdl-core, and some under-the-hood changes. It is completely compatible with DMP as known of the user facing functions/ errors will be changed. This fork will also implement all upstream releases.
 
 Latest working: az13+
