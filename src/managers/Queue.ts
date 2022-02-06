@@ -2,11 +2,10 @@ import { Guild, GuildChannelResolvable, StageChannel, VoiceChannel } from "disco
 import { StreamConnection } from "../voice/StreamConnection";
 import {
     AudioResource,
-    createAudioResource,
-    entersState, joinVoiceChannel, StreamType, VoiceConnectionStatus
+    entersState, joinVoiceChannel, VoiceConnectionStatus
 } from "@discordjs/voice";
 import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions } from "..";
-import { stream, stream } from "play-dl";
+import { stream } from "play-dl";
 
 export class Queue {
     public player: Player;
@@ -217,20 +216,19 @@ export class Queue {
 
         let quality = this.options.quality;
         song = this.songs[0];
-        if (song.seekTime)
+        if (song.seekTime) //If on repeat, song will start from the same seeked spot
             options.seek = song.seekTime;
 
 
         let streamSong = await stream(song.url, {
             seek: options.seek ? options.seek / 1000 : 0,
-            quality: quality!.toLowerCase() === 'low' ? 0 : 1,
+            quality: quality!.toLowerCase() === 'low' ? 1 : 2,
         });
 
-        const resource: AudioResource<Song> = createAudioResource(streamSong.stream, {
+        const resource: AudioResource<Song> = this.connection.createAudioStream(streamSong.stream, {
             metadata: song,
-            inputType: StreamType.WebmOpus,
-            inlineVolume: true  
-        });
+            inputType: streamSong.type
+         });
 
         setTimeout(_ => {
             this.connection!.playAudioStream(resource)
@@ -325,13 +323,13 @@ export class Queue {
         if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
 
+        this.clearQueue();
+        this.skip();
+
         if (this.options.leaveOnStop) {
             setTimeout(() => {
                 this.leave();
             }, this.options.timeout);
-        } else {
-            this.clearQueue()
-            this.skip()
         }
     }
 
@@ -487,7 +485,7 @@ export class Queue {
      */
     leave(): void {
         this.destroyed = true;
-        this.connection?.leave();
+        this.connection!.leave();
         this.player.deleteQueue(this.guild.id);
     }
 
