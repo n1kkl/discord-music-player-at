@@ -16,14 +16,14 @@ import {
     VoiceConnectionStatus,
     VoiceConnectionDisconnectReason
 } from "@discordjs/voice";
-import {StageChannel, VoiceChannel} from "discord.js";
+import { StageChannel, VoiceChannel } from "discord.js";
 import { promisify } from 'util';
 import { Readable } from "stream";
 import { StreamConnectionEvents, Song, DMPError, DMPErrors } from "..";
 const wait = promisify(setTimeout);
 
 export class StreamConnection extends EventEmitter {
-    public readonly connection: VoiceConnection;
+    public connection: VoiceConnection | undefined;
     public readonly player: AudioPlayer;
     public channel: VoiceChannel | StageChannel;
     public resource?: AudioResource<Song>;
@@ -58,39 +58,41 @@ export class StreamConnection extends EventEmitter {
 
         this.connection.on('stateChange', async (oldState, newState) => {
             if (newState.status === VoiceConnectionStatus.Disconnected) {
-                if (newState.reason === VoiceConnectionDisconnectReason.WebSocketClose && newState.closeCode === 4014) {
-                    try {
-                        // Attempting to re-join the voice channel, after possibly changing channels
-                        await entersState(this.connection, VoiceConnectionStatus.Connecting, 5_000);
-                    } catch {
-                        // It was mannually disconnected and the connection is closed in Player.js _voiceUpdate
+                if (this.connection) {
+                    if (newState.reason === VoiceConnectionDisconnectReason.WebSocketClose && newState.closeCode === 4014) {
+                        try {
+                            // Attempting to re-join the voice channel, after possibly changing channels
+                            await entersState(this.connection, VoiceConnectionStatus.Connecting, 5_000);
+                        } catch {
+                            // It was mannually disconnected and the connection is closed in Player.js _voiceUpdate
+                        }
+                    } else if (this.connection.rejoinAttempts < 5) {
+                        await wait((this.connection.rejoinAttempts + 1) * 5_000);
+                        this.connection.rejoin();
+                    } else {
+                        this.leave();
                     }
-                } else if (this.connection.rejoinAttempts < 5) {
-                    await wait((this.connection.rejoinAttempts + 1) * 5_000);
-                    this.connection.rejoin();
-                } else {
-                    this.leave();
                 }
             } else if (newState.status === VoiceConnectionStatus.Destroyed) {
                 this.stop();
-            } else if (
-                !this.readyLock &&
-                (newState.status === VoiceConnectionStatus.Connecting || newState.status === VoiceConnectionStatus.Signalling)
-            ) {
-                this.readyLock = true;
-                try {
-                    await this._enterState();
-                } catch {
-                    if (this.connection.state.status !== VoiceConnectionStatus.Destroyed)
-                        this.leave();
-                } finally {
-                    this.readyLock = false;
+                this.connection = undefined; //Local reference to connection should be undefined if connection is already destroyed
+                
+            } else if (!this.readyLock && (newState.status === VoiceConnectionStatus.Connecting || newState.status === VoiceConnectionStatus.Signalling)) {
+                if (this.connection) {
+                    this.readyLock = true;
+                    try {
+                        await this._enterState();
+                    } catch {
+                        if (this.connection.state.status !== VoiceConnectionStatus.Destroyed)
+                            this.leave();
+                    } finally {
+                        this.readyLock = false;
+                    }
                 }
             }
         });
 
-        this.player
-            .on('stateChange', (oldState, newState) => {
+        this.player.on('stateChange', (oldState, newState) => {
                 if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
                     if (!this.paused) {
                         this.emit('end', this.resource);
@@ -103,8 +105,7 @@ export class StreamConnection extends EventEmitter {
                         return;
                     }
                 }
-            })
-            .on('error', data => {
+            }).on('error', data => {
                 this.emit('error', data);
             });
 
@@ -117,7 +118,7 @@ export class StreamConnection extends EventEmitter {
      * @param {{ inputType: StreamType, metadata: any|undefined }} options
      * @returns {AudioResource<Song>}
      */
-    createAudioStream(stream: string | Readable , options: { inputType: StreamType, metadata?: any }): AudioResource<Song> {
+    createAudioStream(stream: string | Readable, options: { inputType: StreamType, metadata?: any }): AudioResource<Song> {
         this.resource = createAudioResource(stream, {
             inputType: options.inputType,
             inlineVolume: true,
@@ -132,7 +133,8 @@ export class StreamConnection extends EventEmitter {
      * @private
      */
     async _enterState() {
-        await entersState(this.connection, VoiceConnectionStatus.Ready, 20_000);
+        if (this.connection)
+            await entersState(this.connection, VoiceConnectionStatus.Ready, 20_000);
     }
 
     /**
@@ -141,9 +143,11 @@ export class StreamConnection extends EventEmitter {
      * @returns {Promise<StreamConnection>}
      */
     async playAudioStream(resource: AudioResource<Song>): Promise<this> {
-        if(!resource)
+        if (!this.connection)
+            throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
+        if (!resource)
             throw new DMPError(DMPErrors.RESOURCE_NOT_READY);
-        if(!this.resource)
+        if (!this.resource)
             this.resource = resource;
 
         if (this.connection.state.status !== VoiceConnectionStatus.Ready)
@@ -160,7 +164,7 @@ export class StreamConnection extends EventEmitter {
      * @returns {boolean}
      */
     setPauseState(state: boolean) {
-        if(state) {
+        if (state) {
             this.player.pause(true);
             this.paused = true;
             return true;
@@ -185,7 +189,8 @@ export class StreamConnection extends EventEmitter {
      */
     leave() {
         this.player.stop(true);
-        this.connection.destroy();
+        if (this.connection)
+            this.connection.destroy();
     }
 
     /**
