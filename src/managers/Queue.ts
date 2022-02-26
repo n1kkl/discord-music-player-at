@@ -195,6 +195,9 @@ export class Queue {
             .catch(error => {
                 throw new DMPError(error);
             });
+        if (!song) //Checks if song is undefined or not
+            throw new DMPError(DMPErrors.UNKNOWN_SONG);
+
         if (!options.immediate)
             song.data = data;
 
@@ -219,7 +222,6 @@ export class Queue {
         if (song.seekTime) //If on repeat, song will start from the same seeked spot
             options.seek = song.seekTime;
 
-
         let streamSong = await stream(song.url, {
             seek: options.seek ? options.seek / 1000 : 0,
             quality: quality!.toLowerCase() === 'low' ? 1 : 2,
@@ -228,7 +230,7 @@ export class Queue {
         const resource: AudioResource<Song> = this.connection.createAudioStream(streamSong.stream, {
             metadata: song,
             inputType: streamSong.type
-         });
+        });
 
         setTimeout(_ => {
             this.connection!.playAudioStream(resource)
