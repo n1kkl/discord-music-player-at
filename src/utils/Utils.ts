@@ -65,7 +65,7 @@ export class Utils {
      * @param {number} [Limit=1]
      * @return {Promise<Song[]>}
      */
-    static async search(Search: string, SOptions: PlayOptions = DefaultPlayOptions, Queue: Queue, Limit: number = 1): Promise<Song[]> {
+    static async search(Search: string, SOptions: PlayOptions = DefaultPlayOptions, Queue: Queue, Limit: number = 3): Promise<Song[]> {
         SOptions = Object.assign({}, DefaultPlayOptions, SOptions);
         let Filters;
 
@@ -221,14 +221,18 @@ export class Utils {
             Queue
         );
 
-        if(!_Song)
-            _Song = (await this.search(
-                Search,
-                SOptions,
-                Queue
-            ))[0];
+        if(!_Song) {
+            const _Song_Array = (await this.search(Search, SOptions, Queue));
+            let i = 0;
+            _Song = _Song_Array[i];
 
-        return _Song;
+            while (!_Song && i < _Song_Array.length) { //Makes sure that a valid song is chosen from first 3 results
+                i++;
+                _Song = _Song_Array[i];
+            }
+        }
+
+        return _Song; //Possibly undefined still
     }
 
     /**
