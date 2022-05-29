@@ -1,6 +1,6 @@
 {
   "name": "@jadestudios/discord-music-player",
-  "version": "8.3.1-az15",
+  "version": "8.3.1-az16",
   "description": "Complete framework to facilitate music commands using discord.js v13",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,7 +36,7 @@
     "ffmpeg-static": "^4.4.0",
     "htmlparser2": "^7.2.0",
     "libsodium-wrappers": "^0.7.9",
-    "play-dl": "^1.8.8",
+    "play-dl": "^1.9.4",
     "spotify-url-info": "^2.2.3",
     "youtubei": "^0.0.1-rc.28",
     "ytsr": "^3.6.0"

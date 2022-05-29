@@ -4,7 +4,7 @@ import {
     AudioResource,
     entersState, joinVoiceChannel, VoiceConnectionStatus
 } from "@discordjs/voice";
-import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions } from "..";
+import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions, DMPErrorMessages } from "..";
 import { stream } from "play-dl";
 
 export class Queue {
@@ -98,16 +98,21 @@ export class Queue {
      * @returns {Promise<Queue>}
      */
     async join(channelId: GuildChannelResolvable) {
-        if (this.destroyed)
+        if (this.destroyed) {
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-
+        }
         if (this.connection)
             return this;
         const channel = this.guild.channels.resolve(channelId) as StageChannel | VoiceChannel;
-        if (!channel)
+        if (!channel){
+            this.player.emit('error', DMPErrorMessages.UnknownVoice ,this)
             throw new DMPError(DMPErrors.UNKNOWN_VOICE);
-        if (!channel.isVoice())
-            throw new DMPError(DMPErrors.CHANNEL_TYPE_INVALID);
+        }
+        if (!channel.isVoice()){
+            this.player.emit('error', DMPErrorMessages.ChannelTypeInvalid ,this)
+            throw new DMPError(DMPErrors.CHANNEL_TYPE_INVALID)
+        }  
         let connection = joinVoiceChannel({
             guildId: channel.guild.id,
             channelId: channel.id,
@@ -120,7 +125,8 @@ export class Queue {
             _connection = new StreamConnection(connection, channel);
         } catch (err) {
             connection.destroy();
-            throw new DMPError(DMPErrors.VOICE_CONNECTION_ERROR);
+            this.player.emit('error', DMPErrorMessages.VoiceConnectionError ,this)
+            throw new DMPError(DMPErrors.VOICE_CONNECTION_ERROR)
         }
         this.connection = _connection;
 
@@ -144,7 +150,6 @@ export class Queue {
                 this.isPlaying = false;
                 let oldSong = this.songs.shift();
                 if (this.songs.length === 0 && this.repeatMode === RepeatMode.DISABLED) {
-
                     this.player.emit('queueEnd', this);
                     if (this.options.leaveOnEnd)
                         setTimeout(() => {
@@ -164,7 +169,6 @@ export class Queue {
                         this.player.emit('songChanged', this, this.songs[0], oldSong);
                         return this.play(this.songs[0] as Song, { immediate: true });
                     }
-
                     this.player.emit('songChanged', this, this.songs[0], oldSong);
                     return this.play(this.songs[0] as Song, { immediate: true });
                 }
@@ -180,10 +184,15 @@ export class Queue {
      * @returns {Promise<Song>}
      */
     async play(search: Song | string, options: PlayOptions & { immediate?: boolean, seek?: number, data?: any } = DefaultPlayOptions): Promise<Song> {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this);
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
+        }
+        if (!this.connection){
+            this.player.emit('error', DMPErrorMessages.NoVoiceConnection, this);
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
+        }
+            
         options = Object.assign(
             {} as PlayOptions,
             DefaultPlayOptions,
@@ -193,10 +202,13 @@ export class Queue {
         delete options.data;
         let song = await Utils.best(search, options, this)
             .catch(error => {
+                this.player.emit('error', error ,this)
                 throw new DMPError(error);
             });
-        if (!song) //Checks if song is undefined or not
-            throw new DMPError(DMPErrors.UNKNOWN_SONG);
+        if (!song){ //Checks if song is undefined or not
+            this.player.emit('error', DMPErrorMessages.UnknownSong ,this)
+            throw new DMPError(DMPErrors.UNKNOWN_SONG)
+        }
 
         if (!options.immediate)
             song.data = data;
@@ -219,26 +231,44 @@ export class Queue {
 
         let quality = this.options.quality;
         song = this.songs[0];
-        if (song.seekTime) //If on repeat, song will start from the same seeked spot
-            options.seek = song.seekTime;
+        if (song.seekTime && this.repeatMode === RepeatMode.DISABLED) 
+            options.seek = song.seekTime;//If on repeat, song will start from the same seeked spot
 
-        let streamSong = await stream(song.url, {
-            seek: options.seek ? options.seek / 1000 : 0,
-            quality: quality!.toLowerCase() === 'low' ? 1 : 2,
-        });
+        let streamSong;
+        let i = 0;
 
-        const resource: AudioResource<Song> = this.connection.createAudioStream(streamSong.stream, {
-            metadata: song,
-            inputType: streamSong.type
-        });
+        while (!streamSong && i < 3){
+            streamSong = await stream(song.url, {
+                seek: options.seek ? options.seek / 1000 : 0,
+                quality: quality!.toLowerCase() === 'low' ? 1 : 2,
+            }).catch(error => {
+                console.error(error)
+            });
+            i++;
+        }
 
-        setTimeout(_ => {
-            this.connection!.playAudioStream(resource)
-                .then(__ => {
+        if (!streamSong) {
+            this.player.emit('error', DMPErrorMessages.SearchIsNull ,this)
+            const oldSong = this.songs.shift()
+            if (this.songs.length != 0){
+                this.player.emit('songChanged', this, this.songs[0], oldSong);
+                this.play(this.songs[0] as Song, { immediate: true });
+            }else{
+                oldSong!.name = 'NOTHING - FORCEFULLY REMOVED';
+                this.player.emit('songChanged', this, oldSong, oldSong);
+            }
+        }else{
+            const resource: AudioResource<Song> = this.connection.createAudioStream(streamSong.stream, {
+                metadata: song,
+                inputType: streamSong.type
+            });
+            setTimeout((_: any) => {
+                this.connection!.playAudioStream(resource)
+                    .then(__ => {
                     this.setVolume(this.options.volume!);
                 })
-        });
-
+            });
+        }
         return song;
     }
 
@@ -249,10 +279,14 @@ export class Queue {
      * @returns {Promise<Playlist>}
      */
     async playlist(search: Playlist | string, options: PlaylistOptions & { data?: any } = DefaultPlaylistOptions): Promise<Playlist> {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
+        }
+        if (!this.connection){
+            this.player.emit('error', DMPErrorMessages.NoVoiceConnection, this);
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
+        }
         options = Object.assign(
             {} as PlaylistOptions & { data?: any },
             DefaultPlaylistOptions,
@@ -260,6 +294,7 @@ export class Queue {
         );
         let playlist = await Utils.playlist(search, options, this)
             .catch(error => {
+                this.player.emit('error', error ,this);
                 throw new DMPError(error);
             });
         let songLength = this.songs.length;
@@ -280,10 +315,14 @@ export class Queue {
      * @returns {boolean}
      */
     async seek(time: number) {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.isPlaying)
-            throw new DMPError(DMPErrors.NOTHING_PLAYING);
+        }
+        if (!this.isPlaying){
+            this.player.emit('error', DMPErrorMessages.NothingPlaying ,this)
+            throw new DMPError(DMPErrors.NOTHING_PLAYING)
+        }
 
         if (isNaN(time))
             return;
@@ -306,10 +345,14 @@ export class Queue {
      * @returns {Song}
      */
     skip(index: number = 0): Song {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
+        }
+        if (!this.connection){
+            this.player.emit('error', DMPErrorMessages.NoVoiceConnection, this);
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
+        }
         this.songs.splice(1, index);
 
         const skippedSong = this.songs[0];
@@ -322,9 +365,12 @@ export class Queue {
      * @returns {void}
      */
     stop(): void {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
+        }
 
+        this.setRepeatMode(RepeatMode.DISABLED)
         this.clearQueue();
         this.skip();
 
@@ -340,8 +386,10 @@ export class Queue {
      * @returns {Song[]}
      */
     shuffle(): Song[] | undefined {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
+        }
 
         let currentSong = this.songs.shift();
         this.songs = Utils.shuffle(this.songs);
@@ -356,13 +404,18 @@ export class Queue {
      * @returns {boolean}
      */
     setPaused(state: boolean = true): boolean | undefined {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
+        }
+        if (!this.connection){
+            this.player.emit('error', DMPErrorMessages.NoVoiceConnection, this);
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-        if (!this.isPlaying)
-            throw new DMPError(DMPErrors.NOTHING_PLAYING);
-
+        }
+        if (!this.isPlaying){
+            this.player.emit('error', DMPErrorMessages.NothingPlaying ,this)
+            throw new DMPError(DMPErrors.NOTHING_PLAYING)
+        }
         return this.connection.setPauseState(state);
     }
 
@@ -372,8 +425,10 @@ export class Queue {
      * @returns {Song|undefined}
      */
     remove(index: number): Song | undefined {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
+        }
 
         return this.songs.splice(index, 1)[0];
     }
@@ -393,13 +448,18 @@ export class Queue {
      * @type {boolean}
      */
     get paused(): boolean {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
+        }
+        if (!this.connection){
+            this.player.emit('error', DMPErrorMessages.NoVoiceConnection, this);
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-        if (!this.isPlaying)
-            throw new DMPError(DMPErrors.NOTHING_PLAYING);
-
+        }
+        if (!this.isPlaying){
+            this.player.emit('error', DMPErrorMessages.NothingPlaying ,this)
+            throw new DMPError(DMPErrors.NOTHING_PLAYING)
+        }
         return this.connection.paused;
     }
 
@@ -409,11 +469,14 @@ export class Queue {
      * @returns {boolean}
      */
     setVolume(volume: number) {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
+        }
+        if (!this.connection){
+            this.player.emit('error', DMPErrorMessages.NoVoiceConnection, this);
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-
+        }
         this.options.volume = volume;
         return this.connection.setVolume(volume);
     }
@@ -431,8 +494,10 @@ export class Queue {
      * @returns {void}
      */
     clearQueue() {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
+        }
 
         let currentlyPlaying = this.songs.shift();
         this.songs = [currentlyPlaying!];
@@ -444,11 +509,15 @@ export class Queue {
      * @returns {boolean}
      */
     setRepeatMode(repeatMode: RepeatMode): boolean {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
+        }
 
-        if (![RepeatMode.DISABLED, RepeatMode.QUEUE, RepeatMode.SONG].includes(repeatMode))
-            throw new DMPError(DMPErrors.UNKNOWN_REPEAT_MODE);
+        if (![RepeatMode.DISABLED, RepeatMode.QUEUE, RepeatMode.SONG].includes(repeatMode)){
+            this.player.emit('error', DMPErrorMessages.UnknownRepeatMode ,this)
+            throw new DMPError(DMPErrors.UNKNOWN_REPEAT_MODE)
+        }
         if (repeatMode === this.repeatMode)
             return false;
         this.repeatMode = repeatMode;
@@ -461,11 +530,14 @@ export class Queue {
      * @returns {ProgressBar}
      */
     createProgressBar(options?: ProgressBarOptions): ProgressBar {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.isPlaying)
+        }
+        if (!this.isPlaying){
+            this.player.emit('error', DMPErrorMessages.NothingPlaying, this);
             throw new DMPError(DMPErrors.NOTHING_PLAYING);
-
+        }
         return new ProgressBar(this, options);
     }
 
@@ -475,9 +547,10 @@ export class Queue {
      * @returns {void}
      */
     setData(data: any): void {
-        if (this.destroyed)
+        if (this.destroyed){
+            this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-
+        }
         this.data = data;
     }
 
