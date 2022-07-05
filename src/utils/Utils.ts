@@ -17,7 +17,8 @@ export class Utils {
     private constructor() {}
 
     static regexList = {
-        YouTubeVideo: /^((?:https?:)\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))((?!channel)(?!user)\/(?:[\w\-]+\?v=|embed\/|v\/)?)((?!channel)(?!user)[\w\-]+)(((.*(\?|\&)t=(\d+))(\D?|\S+?))|\D?|\S+?)$/,
+        YouTubeVideo: /^((?:https?:)\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))((?!channel)(?!user)\/(?:[\w\-]+\?v=|embed\/|v\/)?)((?!channel)(?!user)[\w\-]+)/,
+        YouTubeVideoTime: /(([?]|[&])t=(\d+))/,
         YouTubeVideoID: /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/,
         YouTubePlaylist: /^((?:https?:)\/\/)?((?:www|m)\.)?((?:youtube\.com)).*(youtu.be\/|list=)([^#&?]*).*/,
         YouTubePlaylistID: /[&?]list=([^&]+)/,
@@ -43,8 +44,8 @@ export class Utils {
      * @returns {?string}
      */
     static parseVideoTimecode(url: string): string|null {
-        const match = url.match(this.regexList.YouTubeVideo);
-        return match ? match[10] : null;
+        const match = url.match(this.regexList.YouTubeVideoTime);
+        return match ? match[3] : null;
     }
 
     /**

@@ -14,6 +14,7 @@ export class Song {
     public isFirst: boolean;
     public seekTime: number;
     public data?: any = null;
+    public firstTimeInQueue: boolean;
 
     /**
      * Song constructor
@@ -121,6 +122,8 @@ export class Song {
         this.seekTime = raw.seekTime ?? 0;
 
         this.data = null;
+
+        this.firstTimeInQueue = true
     }
 
     /**
@@ -154,5 +157,12 @@ export class Song {
      */
     toString(): string {
         return `${this.name} | ${this.author}`;
+    }
+
+    /**
+     * Toggle for specific value
+     */
+    flipFirstTimeInQueue(){
+        this.firstTimeInQueue = false;
     }
 }

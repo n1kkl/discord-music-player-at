@@ -6,6 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+.vs
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -123,3 +124,10 @@ dist
 # Docs files
 docs/docs.json
 dmp-ts.iml
+discord-music-player.njsproj
+discord-music-player.njsproj.user
+discord-music-player.sln
+obj/Debug/discord-music-player.njsproj.AssemblyReference.cache
+obj/Release/discord-music-player.njsproj.AssemblyReference.cache
+test/test.js
+.vscode/launch.json

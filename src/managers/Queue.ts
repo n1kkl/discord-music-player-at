@@ -2,6 +2,7 @@ import { Guild, GuildChannelResolvable, StageChannel, VoiceChannel } from "disco
 import { StreamConnection } from "../voice/StreamConnection";
 import {
     AudioResource,
+    DiscordGatewayAdapterCreator,
     entersState, joinVoiceChannel, VoiceConnectionStatus
 } from "@discordjs/voice";
 import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions, DMPErrorMessages } from "..";
@@ -116,7 +117,7 @@ export class Queue {
         let connection = joinVoiceChannel({
             guildId: channel.guild.id,
             channelId: channel.id,
-            adapterCreator: channel.guild.voiceAdapterCreator,
+            adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
             selfDeaf: this.options.deafenOnJoin
         });
         let _connection: StreamConnection;
@@ -139,8 +140,13 @@ export class Queue {
         this.connection
             .on('start', (resource) => {
                 this.isPlaying = true;
-                if (resource?.metadata?.isFirst && resource?.metadata?.seekTime === 0)
+                if (resource?.metadata?.isFirst && resource?.metadata?.seekTime === 0){
                     this.player.emit('songFirst', this, this.nowPlaying);
+                    resource.metadata.flipFirstTimeInQueue()
+                }else if (resource?.metadata?.firstTimeInQueue){ //Needed if song played has ?t=
+                    this.player.emit('songFirst', this, this.nowPlaying);
+                    resource.metadata.flipFirstTimeInQueue()
+                }
             })
             .on('end', async (resource) => {
                 if (this.destroyed) {
@@ -373,10 +379,12 @@ export class Queue {
         this.setRepeatMode(RepeatMode.DISABLED)
         this.clearQueue();
         this.skip();
+        this.isPlaying = false
 
         if (this.options.leaveOnStop) {
             setTimeout(() => {
-                this.leave();
+                if (!this.isPlaying) //edge case where timer starts then another song is queued
+                    this.leave();
             }, this.options.timeout);
         }
     }

@@ -106,7 +106,7 @@ export const DefaultPlayerOptions: PlayerOptions = {
  */
 export const DefaultPlayOptions: PlayOptions = {
     sortBy: 'relevance',
-    timecode: false
+    timecode: true //False defeats purpose of ?t=
 };
 
 /**
