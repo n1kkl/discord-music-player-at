@@ -269,10 +269,14 @@ export class Queue {
                 inputType: streamSong.type
             });
             setTimeout((_: any) => {
-                this.connection!.playAudioStream(resource)
-                    .then(__ => {
-                    this.setVolume(this.options.volume!);
-                })
+                if (this.connection) {
+                    this.connection.playAudioStream(resource)
+                        .then(__ => {
+                        this.setVolume(this.options.volume!);
+                    }).catch(err => {
+                        console.error(err)
+                    });
+                }
             });
         }
         return song;

@@ -42,7 +42,7 @@ export class Player extends EventEmitter {
 
         this.client.on('voiceStateUpdate',
             (oldState, newState) =>
-                this._voiceUpdate(oldState, newState)
+                this._voiceUpdate(oldState as VoiceState, newState as VoiceState)
         );
     }
 
@@ -135,9 +135,10 @@ export class Player extends EventEmitter {
         if (oldState.channelId === newState.channelId) return;
         if (!leaveOnEmpty || queue.connection.channel.members.size > 1) return;
         setTimeout(() => {
-            if (queue!.connection!.channel.members.size > 1) return;
-            if (queue!.connection!.channel.members.has(this.client.user!.id)) {
-                queue!.leave();
+            if(!queue || !queue.connection) return;
+            if (queue.connection.channel.members.size > 1) return;
+            if (queue.connection.channel.members.has(this.client.user!.id)) {
+                queue.leave();
                 this.emit('channelEmpty', queue);
             }
         }, timeout);
