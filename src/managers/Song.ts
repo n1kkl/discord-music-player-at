@@ -99,6 +99,12 @@ export class Song {
          * @type {any}
          */
 
+        /**
+         * First time in queue
+         * @name Song#firstTimeInQueue
+         * @type {boolean}
+         */
+
         this.player = queue.player;
 
         this.queue = queue;
@@ -160,7 +166,8 @@ export class Song {
     }
 
     /**
-     * Toggle for specific value
+     * Toggles firstTimeInQueue
+     * @returns {void}
      */
     flipFirstTimeInQueue(){
         this.firstTimeInQueue = false;
