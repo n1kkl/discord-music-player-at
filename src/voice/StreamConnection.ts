@@ -6,6 +6,7 @@
 import { EventEmitter } from "events";
 import {
     AudioPlayer,
+    AudioPlayerError,
     AudioPlayerStatus,
     AudioResource,
     createAudioPlayer,
@@ -118,7 +119,7 @@ export class StreamConnection extends EventEmitter {
      * @param {{ inputType: StreamType, metadata: any|undefined }} options
      * @returns {AudioResource<Song>}
      */
-    createAudioStream(stream: string | Readable, options: { inputType: StreamType, metadata?: any }): AudioResource<Song> {
+    createAudioStream(stream: string | Readable , options: { inputType: StreamType, metadata?: any }): AudioResource<Song> {
         this.resource = createAudioResource(stream, {
             inputType: options.inputType,
             inlineVolume: true,

@@ -9,7 +9,7 @@ Latest working: az13+
 Anything lower is unstable or doesn't work. Also, minor updates may not work sometimes. Best is to use whole number updates past az13.
 
 ---
-### Note: This is the v8 version of Discord Music Player for Discord.JS v13!
+### Note: This is the v9 version of Discord Music Player for Discord.JS v13!
 
 Discord Music Player is a powerful [Node.js](https://nodejs.org) module that allows you to easily implement music commands.
 **Everything** is customizable, and everything can be done using this package - **there are no limitations!**
@@ -18,7 +18,7 @@ This package supports YouTube Videos & Playlists, Spotify Songs & Playlists, App
 Package from version v7.0.0 is fully maintained by [SushiBtw](https://github.com/SushiBtw).
 
 ### Requirements:
-- [Discord.js v13](https://www.npmjs.com/package/discord.js),
+- [Discord.js v14 or v13](https://www.npmjs.com/package/discord.js),
 - [Node.JS v16](https://nodejs.org/),
 
 # Installation
@@ -80,7 +80,8 @@ client.on('messageCreate', async (message) => {
     if(command === 'play') {
         let queue = client.player.createQueue(message.guild.id);
         await queue.join(message.member.voice.channel);
-        let song = await queue.play(args.join(' ')).catch(_ => {
+        let song = await queue.play(args.join(' ')).catch(err => {
+            console.log(err);
             if(!guildQueue)
                 queue.stop();
         });
@@ -89,7 +90,8 @@ client.on('messageCreate', async (message) => {
     if(command === 'playlist') {
         let queue = client.player.createQueue(message.guild.id);
         await queue.join(message.member.voice.channel);
-        let song = await queue.playlist(args.join(' ')).catch(_ => {
+        let song = await queue.playlist(args.join(' ')).catch(err => {
+            console.log(err);
             if(!guildQueue)
                 queue.stop();
         });

@@ -1,21 +1,33 @@
-import { Guild, GuildChannelResolvable, StageChannel, VoiceChannel } from "discord.js";
-import { StreamConnection } from "../voice/StreamConnection";
+import {Guild, GuildChannelResolvable, GuildMember, StageChannel, VoiceChannel} from "discord.js";
+import {StreamConnection} from "../voice/StreamConnection";
+import {AudioResource, entersState, joinVoiceChannel, StreamType, VoiceConnectionStatus} from "@discordjs/voice";
 import {
-    AudioResource,
-    DiscordGatewayAdapterCreator,
-    entersState, joinVoiceChannel, VoiceConnectionStatus
-} from "@discordjs/voice";
-import { Playlist, Song, Player, Utils, DefaultPlayerOptions, PlayerOptions, PlayOptions, PlaylistOptions, RepeatMode, ProgressBarOptions, ProgressBar, DMPError, DMPErrors, DefaultPlayOptions, DefaultPlaylistOptions, DMPErrorMessages } from "..";
+    DefaultPlayerOptions,
+    DefaultPlaylistOptions,
+    DefaultPlayOptions,
+    DMPError,
+    DMPErrors,
+    Player,
+    PlayerOptions,
+    Playlist,
+    PlaylistOptions,
+    PlayOptions,
+    ProgressBar,
+    ProgressBarOptions,
+    RepeatMode,
+    Song,
+    Utils
+} from "..";
 import { stream } from "play-dl";
 
-export class Queue {
+export class Queue<T = unknown> {
     public player: Player;
     public guild: Guild;
     public connection: StreamConnection | undefined;
     public songs: Song[] = [];
     public isPlaying: boolean = false;
-    public data?: any = null;
-    public options: PlayerOptions;
+    public data?: T;
+    public options: PlayerOptions = DefaultPlayerOptions;
     public repeatMode: RepeatMode = RepeatMode.DISABLED;
     public destroyed: boolean = false;
 
@@ -95,7 +107,7 @@ export class Queue {
 
     /**
      * Joins a voice channel
-     * @param {GuildChannelResolvable} _channel
+     * @param {GuildChannelResolvable} channelId
      * @returns {Promise<Queue>}
      */
     async join(channelId: GuildChannelResolvable) {
@@ -131,9 +143,13 @@ export class Queue {
         }
         this.connection = _connection;
 
-        if (channel.type === "GUILD_STAGE_VOICE") {
-            await channel.guild.me!.voice.setSuppressed(false).catch(async _ => {
-                return await channel!.guild.me!.voice.setRequestToSpeak(true).catch(() => null);
+        if (Utils.isStageVoiceChannel(channel)) {
+            const _guild = channel.guild as Guild & {
+                me?: GuildMember;
+            };
+            const me = _guild.me ? _guild.me : _guild.members.me!;
+            await me.voice.setSuppressed(false).catch(async _ => {
+                return await channel!.guild.members.me!.voice.setRequestToSpeak(true).catch(() => null);
             });
         }
 
@@ -308,7 +324,9 @@ export class Queue {
                 throw new DMPError(error);
             });
         let songLength = this.songs.length;
-        this.songs.push(...playlist.songs);
+        if (options?.index! >= 0 && ++options.index! <= songLength)
+            this.songs.splice(options.index!, 0, ...playlist.songs);
+        else this.songs.push(...playlist.songs);
         this.player.emit('playlistAdd', this, playlist);
 
         if (songLength === 0) {

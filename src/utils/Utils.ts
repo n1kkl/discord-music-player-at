@@ -1,21 +1,24 @@
 import {
-    Song, Queue, Playlist,
-    PlayOptions, PlaylistOptions, DMPErrors,
-    DefaultPlayOptions, DefaultPlaylistOptions,
-    RawSong, RawPlaylist,
+    DefaultPlaylistOptions,
+    DefaultPlayOptions,
+    DMPErrors,
+    Playlist,
+    PlaylistOptions,
+    PlayOptions,
+    Queue,
+    RawPlaylist,
+    RawSong,
+    Song,
 } from "..";
-import YTSR, { Video } from 'ytsr';
-import {getData, getPreview } from "spotify-url-info";
-import { getSong, getPlaylist } from "./AppleUtils";
-import {Client, Video as IVideo, VideoCompact, Playlist as IPlaylist} from "youtubei";
+import YTSR, {Video} from 'ytsr';
+import {getData, getPreview} from "spotify-url-info";
+import {getPlaylist, getSong} from "apple-music-metadata";
+import {Client, Playlist as IPlaylist, Video as IVideo, VideoCompact} from "youtubei";
+import {ChannelType, GuildChannel} from "discord.js";
+
 let YouTube = new Client();
 
 export class Utils {
-    /**
-     *
-     */
-    private constructor() {}
-
     static regexList = {
         YouTubeVideo: /^((?:https?:)\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))((?!channel)(?!user)\/(?:[\w\-]+\?v=|embed\/|v\/)?)((?!channel)(?!user)[\w\-]+)/,
         YouTubeVideoTime: /(([?]|[&])t=(\d+))/,
@@ -33,7 +36,7 @@ export class Utils {
      * @param {string} url
      * @returns {?string}
      */
-    static parseVideo(url: string): string|null {
+    static parseVideo(url: string): string | null {
         const match = url.match(this.regexList.YouTubeVideoID);
         return match ? match[7] : null;
     }
@@ -53,7 +56,7 @@ export class Utils {
      * @param {string} url
      * @returns {?string}
      */
-    static parsePlaylist(url: string): string|null {
+    static parsePlaylist(url: string): string | null {
         const match = url.match(this.regexList.YouTubePlaylistID);
         return match ? match[1] : null;
     }
@@ -78,10 +81,10 @@ export class Utils {
             // Custom Options - Upload date: null
             if (SOptions?.uploadDate !== null)
                 Filters = Array.from(
-                    (
-                        await YTSR.getFilters(Filters.url!)
-                    )
-                        .get('Upload date')!, ([name, value]) => ({ name, url: value.url })
+                        (
+                            await YTSR.getFilters(Filters.url!)
+                        )
+                            .get('Upload date')!, ([name, value]) => ({name, url: value.url})
                     )
                         .find(o => o.name.toLowerCase().includes(SOptions?.uploadDate!))
                     ?? Filters;
@@ -89,10 +92,10 @@ export class Utils {
             // Custom Options - Duration: null
             if (SOptions?.duration !== null)
                 Filters = Array.from(
-                    (
-                        await YTSR.getFilters(Filters.url!)
-                    )
-                        .get('Duration')!, ([name, value]) => ({ name, url: value.url })
+                        (
+                            await YTSR.getFilters(Filters.url!)
+                        )
+                            .get('Duration')!, ([name, value]) => ({name, url: value.url})
                     )
                         .find(o => o.name.toLowerCase().startsWith(SOptions?.duration!))
                     ?? Filters;
@@ -100,10 +103,10 @@ export class Utils {
             // Custom Options - Sort by: relevance
             if (SOptions?.sortBy !== null && SOptions?.sortBy !== 'relevance')
                 Filters = Array.from(
-                    (
-                        await YTSR.getFilters(Filters.url!)
-                    )
-                        .get('Sort by')!, ([name, value]) => ({ name, url: value.url })
+                        (
+                            await YTSR.getFilters(Filters.url!)
+                        )
+                            .get('Sort by')!, ([name, value]) => ({name, url: value.url})
                     )
                         .find(o => o.name.toLowerCase().includes(SOptions?.sortBy!))
                     ?? Filters;
@@ -117,8 +120,8 @@ export class Utils {
 
             let items = Result.items as Video[];
 
-            let songs: (Song|null)[] = items.map(item => {
-                if(item?.type?.toLowerCase() !== 'video')
+            let songs: (Song | null)[] = items.map(item => {
+                if (item?.type?.toLowerCase() !== 'video')
                     return null;
                 return new Song({
                     name: item.title,
@@ -131,8 +134,7 @@ export class Utils {
             }).filter(I => I);
 
             return songs as Song[];
-        }
-        catch (e) {
+        } catch (e) {
             throw DMPErrors.SEARCH_NULL;
         }
     }
@@ -156,17 +158,18 @@ export class Utils {
         if (AppleLink) {
             try {
                 let AppleResult = await getSong(Search);
-                let SearchResult = await this.search(
-                    `${AppleResult.artist} - ${AppleResult.title}`,
-                    SOptions,
-                    Queue
-                );
-                return SearchResult[0];
-            }
-            catch(e) {
+                if (AppleResult) {
+                    let SearchResult = await this.search(
+                        `${AppleResult.artist} - ${AppleResult.title}`,
+                        SOptions,
+                        Queue
+                    );
+                    return SearchResult[0];
+                }
+            } catch (e) {
                 throw DMPErrors.INVALID_APPLE;
             }
-        } else if(SpotifyLink) {
+        } else if (SpotifyLink) {
             try {
                 let SpotifyResult = await getPreview(Search);
                 let SearchResult = await this.search(
@@ -175,11 +178,10 @@ export class Utils {
                     Queue
                 );
                 return SearchResult[0];
-            }
-            catch(e) {
+            } catch (e) {
                 throw DMPErrors.INVALID_SPOTIFY;
             }
-        } else if(YouTubeLink) {
+        } else if (YouTubeLink) {
             let VideoID = this.parseVideo(Search);
             if (!VideoID) throw DMPErrors.SEARCH_NULL;
             YouTube = new Client({
@@ -188,7 +190,7 @@ export class Utils {
                 }
             });
             let VideoResult = await YouTube.getVideo(VideoID) as IVideo;
-            if(!VideoResult) throw DMPErrors.SEARCH_NULL;
+            if (!VideoResult) throw DMPErrors.SEARCH_NULL;
             let VideoTimecode = this.parseVideoTimecode(Search);
 
             return new Song({
@@ -210,10 +212,10 @@ export class Utils {
      * @param {Queue} Queue
      * @return {Promise<Song>}
      */
-    static async best(Search: Song|string, SOptions: PlayOptions = DefaultPlayOptions, Queue: Queue): Promise<Song> {
+    static async best(Search: Song | string, SOptions: PlayOptions = DefaultPlayOptions, Queue: Queue): Promise<Song> {
         let _Song;
 
-        if(Search instanceof Song)
+        if (Search instanceof Song)
             return Search as Song;
 
         _Song = await this.link(
@@ -243,8 +245,8 @@ export class Utils {
      * @param {Queue} Queue
      * @return {Promise<Playlist>}
      */
-    static async playlist(Search: Playlist|string, SOptions: PlaylistOptions & { data?: any } = DefaultPlaylistOptions, Queue: Queue): Promise<Playlist> {
-        if(Search instanceof Playlist)
+    static async playlist(Search: Playlist | string, SOptions: PlaylistOptions & { data?: any } = DefaultPlaylistOptions, Queue: Queue): Promise<Playlist> {
+        if (Search instanceof Playlist)
             return Search as Playlist;
 
         let Limit = SOptions.maxSongs ?? -1;
@@ -291,13 +293,13 @@ export class Utils {
             if (AppleResult.songs.length === 0)
                 throw DMPErrors.INVALID_PLAYLIST;
 
-            if(SOptions.shuffle)
+            if (SOptions.shuffle)
                 AppleResult.songs = this.shuffle(AppleResult.songs);
 
             return new Playlist(AppleResult, Queue, SOptions.requestedBy);
-        } else if(SpotifyPlaylistLink) {
+        } else if (SpotifyPlaylistLink) {
             let SpotifyResultData = await getData(Search).catch(() => null);
-            if(!SpotifyResultData || !['playlist', 'album'].includes(SpotifyResultData.type))
+            if (!SpotifyResultData || !['playlist', 'album'].includes(SpotifyResultData.type))
                 throw DMPErrors.INVALID_PLAYLIST;
 
             let SpotifyResult: RawPlaylist = {
@@ -320,7 +322,7 @@ export class Utils {
                             SOptions,
                             Queue
                         ).catch(() => null);
-                        if (Result) {
+                        if (Result && Result[0]) {
                             Result[0].data = SOptions.data;
                             return Result[0];
                         } else return null;
@@ -332,11 +334,11 @@ export class Utils {
             if (SpotifyResult.songs.length === 0)
                 throw DMPErrors.INVALID_PLAYLIST;
 
-            if(SOptions.shuffle)
+            if (SOptions.shuffle)
                 SpotifyResult.songs = this.shuffle(SpotifyResult.songs);
 
             return new Playlist(SpotifyResult, Queue, SOptions.requestedBy);
-        } else if(YouTubePlaylistLink) {
+        } else if (YouTubePlaylistLink) {
             let PlaylistID = this.parsePlaylist(Search);
             if (!PlaylistID)
                 throw DMPErrors.INVALID_PLAYLIST;
@@ -358,7 +360,7 @@ export class Utils {
                 type: 'playlist'
             }
 
-            if(YouTubeResultData instanceof IPlaylist && YouTubeResultData.videoCount > 100 && (Limit === -1 || Limit > 100))
+            if (YouTubeResultData instanceof IPlaylist && YouTubeResultData.videoCount > 100 && (Limit === -1 || Limit > 100))
                 await YouTubeResultData.next(Math.floor((Limit === -1 || Limit > YouTubeResultData.videoCount ? YouTubeResultData.videoCount : Limit - 1) / 100));
 
             YouTubeResult.songs = YouTubeResultData.videos.map((video: VideoCompact, index: number) => {
@@ -380,7 +382,7 @@ export class Utils {
             if (YouTubeResult.songs.length === 0)
                 throw DMPErrors.INVALID_PLAYLIST;
 
-            if(SOptions.shuffle)
+            if (SOptions.shuffle)
                 YouTubeResult.songs = this.shuffle(YouTubeResult.songs);
 
             return new Playlist(YouTubeResult, Queue, SOptions.requestedBy);
@@ -395,11 +397,11 @@ export class Utils {
      * @returns {any[]}
      */
     static shuffle(array: any[]): any[] {
-        if(!Array.isArray(array))
+        if (!Array.isArray(array))
             return [];
         const clone = [...array];
         const shuffled = [];
-        while(clone.length > 0)
+        while (clone.length > 0)
             shuffled.push(
                 clone.splice(
                     Math.floor(
@@ -432,8 +434,22 @@ export class Utils {
     static timeToMs(duration: string): number {
         return duration.split(':')
             .reduceRight(
-                (prev, curr, i, arr) => prev + parseInt(curr) * 60**(arr.length-1-i), 0
+                (prev, curr, i, arr) => prev + parseInt(curr) * 60 ** (arr.length - 1 - i), 0
             ) * 1000;
+    }
+
+    static isVoiceChannel(Channel: GuildChannel): boolean {
+        let type = Channel.type as ChannelType | string;
+        if (typeof type === 'string')
+            return ['GUILD_VOICE', 'GUILD_STAGE_VOICE'].includes(type);
+        else return [ChannelType.GuildVoice, ChannelType.GuildStageVoice].includes(type);
+    }
+
+    static isStageVoiceChannel(Channel: GuildChannel): boolean {
+        let type = Channel.type as ChannelType | string;
+        if (typeof type === 'string')
+            return type === 'GUILD_STAGE_VOICE';
+        else return type === ChannelType.GuildStageVoice;
     }
 
 }
