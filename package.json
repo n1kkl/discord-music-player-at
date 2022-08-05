@@ -1,6 +1,6 @@
 {
   "name": "@jadestudios/discord-music-player",
-  "version": "9.0.2-az18",
+  "version": "9.0.2-az19",
   "description": "Complete framework to facilitate music commands using discord.js v13",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,11 +26,12 @@
     "url": "https://github.com/jadestudios/discord-music-player/issues"
   },
   "homepage": "https://discord-music-player.js.org/",
-  "author": "SushiBtw",
+  "author": "thenerdoflight",
   "license": "MIT",
   "dependencies": {
     "@discordjs/opus": "^0.8.0",
     "@discordjs/voice": "^0.11.0",
+    "apple-music-metadata": "^2.0.0",
     "axios": "^0.26.0",
     "axios-retry": "^3.2.4",
     "domhandler": "^4.3.0",

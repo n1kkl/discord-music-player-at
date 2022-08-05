@@ -3,10 +3,20 @@
 
 [![CodeQL](https://github.com/jadestudios/discord-music-player/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jadestudios/discord-music-player/actions/workflows/codeql-analysis.yml)
 
-This is a fork of Discord Music Player by SushiBtw. This fork is changed to use play-dl instead of ytdl-core, and some under-the-hood changes. It is completely compatible with DMP as known of the user facing functions/ errors will be changed. This fork will also implement all upstream releases.
+This is a fork of Discord Music Player (DMP) by SushiBtw. This fork is changed to use play-dl instead of ytdl-core, and some under-the-hood changes. For more info on any changes, please check out the release page.
 
-Latest working: az13+
-Anything lower is unstable or doesn't work. Also, minor updates may not work sometimes. Best is to use whole number updates past az13.
+The client facing API is not changed and will be relatively the same as DMP. Results using those API calls may be different from the original.
+
+This fork will attempt to implement all upstream PRs and releases.
+
+| Version | Status |
+---|---|
+az19 | Latest - Based on DMP 9.0.2
+az18 | Last Native Discord.JS V13 - Based on  DMP 8.3.0
+az13 - az17 | Deprecated - Security issue in Discord Voice
+az1 - az12 | Non-Functional
+
+Minor updates may not work sometimes as well.
 
 ---
 ### Note: This is the v9 version of Discord Music Player for Discord.JS v13!
