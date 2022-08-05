@@ -12,7 +12,8 @@ import {
 } from "..";
 import YTSR, {Video} from 'ytsr';
 import {getData, getPreview} from "spotify-url-info";
-import {getPlaylist, getSong} from "apple-music-metadata";
+import getPlayList from "apple-music-metadata";
+import getSong from "apple-music-metadata";
 import {Client, Playlist as IPlaylist, Video as IVideo, VideoCompact} from "youtubei";
 import {ChannelType, GuildChannel} from "discord.js";
 
@@ -159,8 +160,9 @@ export class Utils {
             try {
                 let AppleResult = await getSong(Search);
                 if (AppleResult) {
+                    const artist = AppleResult.type === 'playlist' ? AppleResult.creator : AppleResult.artist;
                     let SearchResult = await this.search(
-                        `${AppleResult.artist} - ${AppleResult.title}`,
+                        `${artist} - ${AppleResult.title}`,
                         SOptions,
                         Queue
                     );
@@ -259,13 +261,15 @@ export class Utils {
 
         if (ApplePlaylistLink) {
 
-            let AppleResultData = await getPlaylist(Search).catch(() => null);
+            let AppleResultData = await getPlayList(Search).catch(() => null);
             if (!AppleResultData)
+                throw DMPErrors.INVALID_PLAYLIST;
+            if (AppleResultData.type === 'song')
                 throw DMPErrors.INVALID_PLAYLIST;
 
             let AppleResult: RawPlaylist = {
-                name: AppleResultData.name,
-                author: AppleResultData.author,
+                name: AppleResultData.type === "playlist" ? AppleResultData.creator.name : AppleResultData.artist.name,
+                author: AppleResultData.type === "playlist" ? AppleResultData.creator.name : AppleResultData.artist.name,
                 url: Search,
                 songs: [],
                 type: AppleResultData.type
