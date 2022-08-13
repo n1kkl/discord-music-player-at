@@ -1,6 +1,6 @@
-import {ChannelType, Guild, GuildChannelResolvable, GuildMember, StageChannel, VoiceChannel} from "discord.js";
+import {Guild, GuildChannelResolvable, GuildMember, StageChannel, VoiceChannel} from "discord.js";
 import {StreamConnection} from "../voice/StreamConnection";
-import {AudioResource, DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, StreamType, VoiceConnectionStatus} from "@discordjs/voice";
+import {AudioResource, DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, VoiceConnectionStatus} from "@discordjs/voice";
 import {
     DefaultPlayerOptions,
     DefaultPlaylistOptions,
@@ -123,7 +123,7 @@ export class Queue<T = unknown> {
             this.player.emit('error', DMPErrorMessages.UnknownVoice ,this)
             throw new DMPError(DMPErrors.UNKNOWN_VOICE);
         }
-        if (channel.type !== ChannelType.GuildVoice){
+        if (!Utils.isVoiceChannel(channel)){
             this.player.emit('error', DMPErrorMessages.ChannelTypeInvalid ,this)
             throw new DMPError(DMPErrors.CHANNEL_TYPE_INVALID)
         }  
