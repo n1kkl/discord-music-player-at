@@ -206,7 +206,7 @@ export class Queue<T = unknown> {
      * @param {PlayOptions} [options=DefaultPlayOptions]
      * @returns {Promise<Song>}
      */
-    async play(search: Song | string, options: PlayOptions & { immediate?: boolean, seek?: number, data?: any } = DefaultPlayOptions): Promise<Song> {
+    async play(search: Song | string, options: PlayOptions & { immediate?: boolean, seek?: number, data?: T } = DefaultPlayOptions): Promise<Song> {
         if (this.destroyed){
             this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this);
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
@@ -305,7 +305,7 @@ export class Queue<T = unknown> {
      * @param {PlaylistOptions} [options=DefaultPlaylistOptions]
      * @returns {Promise<Playlist>}
      */
-    async playlist(search: Playlist | string, options: PlaylistOptions & { data?: any } = DefaultPlaylistOptions): Promise<Playlist> {
+    async playlist(search: Playlist | string, options: PlaylistOptions & { data?: T } = DefaultPlaylistOptions): Promise<Playlist> {
         if (this.destroyed){
             this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
@@ -315,7 +315,7 @@ export class Queue<T = unknown> {
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
         }
         options = Object.assign(
-            {} as PlaylistOptions & { data?: any },
+            {} as PlaylistOptions & { data?: T },
             DefaultPlaylistOptions,
             options
         );
@@ -574,10 +574,10 @@ export class Queue<T = unknown> {
 
     /**
      * Set's custom queue data
-     * @param {any} data
+     * @param {T} data
      * @returns {void}
      */
-    setData(data: any): void {
+    setData(data: T): void {
         if (this.destroyed){
             this.player.emit('error', DMPErrorMessages.QueueDestroyed ,this)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
