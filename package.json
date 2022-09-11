@@ -1,6 +1,6 @@
 {
   "name": "@jadestudios/discord-music-player",
-  "version": "9.0.2-az20",
+  "version": "9.1.1-az20-dev001",
   "description": "Complete framework to facilitate music commands using discord.js v13",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
