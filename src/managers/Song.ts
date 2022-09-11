@@ -1,5 +1,5 @@
 import { User } from 'discord.js';
-import { Player, Queue, RawSong, Utils } from '..';
+import { Filter, Player, Queue, RawSong, Utils } from '..';
 
 export class Song {
     public player: Player;
@@ -15,6 +15,7 @@ export class Song {
     public seekTime: number;
     public data?: any = null;
     public firstTimeInQueue: boolean;
+    public filters:[Filter] | undefined;
 
     /**
      * Song constructor
@@ -105,6 +106,12 @@ export class Song {
          * @type {boolean}
          */
 
+        /**
+         * Filters for the song
+         * @name Song#filters
+         * @type {StreamFilters}
+         */
+
         this.player = queue.player;
 
         this.queue = queue;
@@ -130,6 +137,8 @@ export class Song {
         this.data = null;
 
         this.firstTimeInQueue = true
+
+        this.filters = undefined;
     }
 
     /**
