@@ -10,14 +10,15 @@ import {
     RawSong,
     Song,
 } from "..";
-import YTSR, { Video } from 'ytsr';
-import { getData, getPreview } from "spotify-url-info";
-import getPlayList from "apple-music-metadata";
-import getSong from "apple-music-metadata";
-import { Client, Playlist as IPlaylist, Video as IVideo, VideoCompact } from "youtubei";
-import { ChannelType, GuildChannel } from "discord.js";
+import fetch from 'isomorphic-unfetch';
+import YTSR, {Video} from 'ytsr';
+import Spotify from "spotify-url-info";
+import {getPlaylist, getSong} from "apple-music-metadata";
+import {Client, Playlist as IPlaylist, Video as IVideo, VideoCompact} from "youtubei";
+import {ChannelType, GuildChannel} from "discord.js";
 
 let YouTube = new Client();
+const {getData, getPreview} = Spotify(fetch);
 
 export class Utils {
     static regexList = {
