@@ -76,7 +76,7 @@ export class StreamConnection extends EventEmitter {
             } else if (newState.status === VoiceConnectionStatus.Destroyed) {
                 this.stop();
                 this.connection = undefined; //Local reference to connection should be undefined if connection is already destroyed
-                
+
             } else if (!this.readyLock && (newState.status === VoiceConnectionStatus.Connecting || newState.status === VoiceConnectionStatus.Signalling)) {
                 if (this.connection) {
                     this.readyLock = true;
@@ -93,21 +93,21 @@ export class StreamConnection extends EventEmitter {
         });
 
         this.player.on('stateChange', (oldState, newState) => {
-                if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
-                    if (!this.paused) {
-                        this.emit('end', this.resource);
-                        delete this.resource;
-                        return;
-                    }
-                } else if (newState.status === AudioPlayerStatus.Playing) {
-                    if (!this.paused) {
-                        this.emit('start', this.resource);
-                        return;
-                    }
+            if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
+                if (!this.paused) {
+                    this.emit('end', this.resource);
+                    delete this.resource;
+                    return;
                 }
-            }).on('error', data => {
-                this.emit('error', data);
-            });
+            } else if (newState.status === AudioPlayerStatus.Playing) {
+                if (!this.paused) {
+                    this.emit('start', this.resource);
+                    return;
+                }
+            }
+        }).on('error', data => {
+            this.emit('error', data);
+        });
 
         this.connection.subscribe(this.player);
     }
@@ -118,7 +118,7 @@ export class StreamConnection extends EventEmitter {
      * @param {{ inputType: StreamType, metadata: any|undefined }} options
      * @returns {AudioResource<Song>}
      */
-    createAudioStream(stream: string | Readable , options: { inputType: StreamType, metadata?: any }): AudioResource<Song> {
+    createAudioStream(stream: string | Readable, options: { inputType: StreamType, metadata?: any }): AudioResource<Song> {
         this.resource = createAudioResource(stream, {
             inputType: options.inputType,
             inlineVolume: true,

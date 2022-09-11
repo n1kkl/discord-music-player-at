@@ -65,7 +65,7 @@ export class Player<OptionsData = any> extends EventEmitter {
         if (this.hasQueue(guildId) && !this.getQueue(guildId)?.destroyed)
             return this.getQueue(guildId) as Queue<D>;
 
-        let {data} = options;
+        let { data } = options;
         delete options.data;
         const queue = new Queue<D>(this, guild, options);
         queue.data = data;
@@ -123,7 +123,7 @@ export class Player<OptionsData = any> extends EventEmitter {
         if (!queue || !queue.connection)
             return;
 
-        let {deafenOnJoin, leaveOnEmpty, timeout} = queue.options;
+        let { deafenOnJoin, leaveOnEmpty, timeout } = queue.options;
 
         if (!newState.channelId && this.client.user?.id === oldState.member?.id) {
             queue.leave();
@@ -135,7 +135,7 @@ export class Player<OptionsData = any> extends EventEmitter {
         if (oldState.channelId === newState.channelId) return;
         if (!leaveOnEmpty || queue.connection.channel.members.size > 1) return;
         setTimeout(() => {
-            if(!queue || !queue.connection) return;
+            if (!queue || !queue.connection) return;
             if (queue.connection.channel.members.size > 1) return;
             if (queue.connection.channel.members.has(this.client.user!.id)) {
                 queue.leave();

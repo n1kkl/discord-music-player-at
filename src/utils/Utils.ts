@@ -10,12 +10,12 @@ import {
     RawSong,
     Song,
 } from "..";
-import YTSR, {Video} from 'ytsr';
-import {getData, getPreview} from "spotify-url-info";
+import YTSR, { Video } from 'ytsr';
+import { getData, getPreview } from "spotify-url-info";
 import getPlayList from "apple-music-metadata";
 import getSong from "apple-music-metadata";
-import {Client, Playlist as IPlaylist, Video as IVideo, VideoCompact} from "youtubei";
-import {ChannelType, GuildChannel} from "discord.js";
+import { Client, Playlist as IPlaylist, Video as IVideo, VideoCompact } from "youtubei";
+import { ChannelType, GuildChannel } from "discord.js";
 
 let YouTube = new Client();
 
@@ -47,7 +47,7 @@ export class Utils {
      * @param {string} url
      * @returns {?string}
      */
-    static parseVideoTimecode(url: string): string|null {
+    static parseVideoTimecode(url: string): string | null {
         const match = url.match(this.regexList.YouTubeVideoTime);
         return match ? match[3] : null;
     }
@@ -82,34 +82,34 @@ export class Utils {
             // Custom Options - Upload date: null
             if (SOptions?.uploadDate !== null)
                 Filters = Array.from(
-                        (
-                            await YTSR.getFilters(Filters.url!)
-                        )
-                            .get('Upload date')!, ([name, value]) => ({name, url: value.url})
+                    (
+                        await YTSR.getFilters(Filters.url!)
                     )
-                        .find(o => o.name.toLowerCase().includes(SOptions?.uploadDate!))
+                        .get('Upload date')!, ([name, value]) => ({ name, url: value.url })
+                )
+                    .find(o => o.name.toLowerCase().includes(SOptions?.uploadDate!))
                     ?? Filters;
 
             // Custom Options - Duration: null
             if (SOptions?.duration !== null)
                 Filters = Array.from(
-                        (
-                            await YTSR.getFilters(Filters.url!)
-                        )
-                            .get('Duration')!, ([name, value]) => ({name, url: value.url})
+                    (
+                        await YTSR.getFilters(Filters.url!)
                     )
-                        .find(o => o.name.toLowerCase().startsWith(SOptions?.duration!))
+                        .get('Duration')!, ([name, value]) => ({ name, url: value.url })
+                )
+                    .find(o => o.name.toLowerCase().startsWith(SOptions?.duration!))
                     ?? Filters;
 
             // Custom Options - Sort by: relevance
             if (SOptions?.sortBy !== null && SOptions?.sortBy !== 'relevance')
                 Filters = Array.from(
-                        (
-                            await YTSR.getFilters(Filters.url!)
-                        )
-                            .get('Sort by')!, ([name, value]) => ({name, url: value.url})
+                    (
+                        await YTSR.getFilters(Filters.url!)
                     )
-                        .find(o => o.name.toLowerCase().includes(SOptions?.sortBy!))
+                        .get('Sort by')!, ([name, value]) => ({ name, url: value.url })
+                )
+                    .find(o => o.name.toLowerCase().includes(SOptions?.sortBy!))
                     ?? Filters;
 
             let Result = await YTSR(
@@ -226,7 +226,7 @@ export class Utils {
             Queue
         );
 
-        if(!_Song) {
+        if (!_Song) {
             const _Song_Array = (await this.search(Search, SOptions, Queue));
             let i = 0;
             _Song = _Song_Array[i];

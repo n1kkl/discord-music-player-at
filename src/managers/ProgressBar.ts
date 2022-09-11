@@ -38,11 +38,11 @@ class ProgressBar {
          * @type {string}
          */
 
-        if(queue.destroyed)
+        if (queue.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if(!queue.connection)
+        if (!queue.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-        if(!queue.isPlaying)
+        if (!queue.isPlaying)
             throw new DMPError(DMPErrors.NOTHING_PLAYING);
 
         this.queue = queue;
