@@ -9,10 +9,11 @@ The client facing API is not changed and will be relatively the same as DMP. Res
 
 This fork will attempt to implement all upstream PRs and releases.
 
-| Version | Status |
+| Version | Status and Information|
 ---|---|
-az19 | Latest - Based on DMP 9.0.2
-az18 | Last Native Discord.JS V13 - Based on  DMP 8.3.0
+az20 | Latest - Based on DMP 9.1.1
+az19 - 20 | Active - Based on DMP 9.0.2
+az18 | Active - Last Native Discord.JS V13 - Based on  DMP 8.3.0
 az13 - az17 | Deprecated - Security issue in Discord Voice
 az1 - az12 | Non-Functional
 
