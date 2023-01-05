@@ -1,31 +1,48 @@
 # @jadestudios/Discord-Music-Player
 
-
+[![NPM version](https://img.shields.io/npm/v/@jadestudios/discord-music-player.svg)](https://www.npmjs.com/package/@jadestudios/discord-music-player)
+[![Downloads](https://img.shields.io/npm/dm/@jadestudios/discord-music-player.svg)](https://www.npmjs.com/package/@jadestudios/discord-music-player)
 [![CodeQL](https://github.com/jadestudios/discord-music-player/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jadestudios/discord-music-player/actions/workflows/codeql-analysis.yml)
 
-This is a fork of Discord Music Player (DMP) by SushiBtw. This fork is changed to use play-dl instead of ytdl-core, and some under-the-hood changes. For more info on any changes, please check out the release page.
+This is a fork of Discord Music Player (DMP) by SushiBtw. The reason behind the existence of this fork is as follows: 
 
-The client facing API is not changed and will be relatively the same as DMP. Results using those API calls may be different from the original.
+* Not being actively maintained when ytdl-core was having issues
+* A lot of cases that were not accounted for in the codebase
 
-This fork will attempt to implement all upstream PRs and releases.
+This fork will attempt to stay current with upstream. This does not mean that all or any upstream code changes will be utilized.
+Just that Git will say that I am not behind on any commits.
 
-| Version | Status |
+---
+
+### Major differences within this fork
+* Using Play-dl instead of ytdl-core
+* More search queries to ensure song is valid
+* Changed how seek works in regards of songs on repeat
+* Increased queue stability in case of failed searches
+* Changed how Queue#stop works
+* Added event emits for all errors
+* Changed internal Youtube URL regex
+* Basic filter support - I don't intend to expand more on this
+
+---
+ 
+
+| Version | Status and Information|
 ---|---|
-az19 | Latest - Based on DMP 9.0.2
-az18 | Last Native Discord.JS V13 - Based on  DMP 8.3.0
+az20 | Latest - Based on DMP 9.1.1
+az19 - 20 | Active - Based on DMP 9.0.2
+az18 | Active - Last Native Discord.JS V13 - Based on  DMP 8.3.0
 az13 - az17 | Deprecated - Security issue in Discord Voice
 az1 - az12 | Non-Functional
 
-Minor updates may not work sometimes as well.
 
 ---
-### Note: This is the v9 version of Discord Music Player for Discord.JS v13!
+### Note: This is the v9 version of Discord Music Player for Discord.JS v13 and v14!
 
 Discord Music Player is a powerful [Node.js](https://nodejs.org) module that allows you to easily implement music commands.
 **Everything** is customizable, and everything can be done using this package - **there are no limitations!**
 
 This package supports YouTube Videos & Playlists, Spotify Songs & Playlists, Apple Music Songs & Playlists.
-Package from version v7.0.0 is fully maintained by [SushiBtw](https://github.com/SushiBtw).
 
 ### Requirements:
 - [Discord.js v14 or v13](https://www.npmjs.com/package/discord.js),
@@ -45,8 +62,7 @@ npm install --save @discordjs/opus
 # Documentation
 **Discord Music Player documentation: [https://discord-music-player.js.org/](https://discord-music-player.js.org/)**
 
-### **Need some help?**
-Feel free to join [Discord-Music-Player Discord Server](https://discord.gg/6fejZNsmFC) and ask us about DMP.
+Read the code as well :)
 
 # Getting Started
 **The code bellow, will show you how to use DMP in your code.**
