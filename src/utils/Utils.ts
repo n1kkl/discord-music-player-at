@@ -12,14 +12,13 @@ import {
 } from "..";
 import fetch from 'isomorphic-unfetch';
 import YTSR, {Video} from 'ytsr';
-import Spotify from "spotify-url-info";
 import getSong from "apple-music-metadata";
 import getPlayList from "apple-music-metadata"
 import {Client, Playlist as IPlaylist, Video as IVideo, VideoCompact} from "youtubei";
 import {ChannelType, GuildChannel} from "discord.js";
 
 let YouTube = new Client();
-const {getData, getPreview} = Spotify(fetch);
+const { getData, getPreview, getTracks, getDetails } = require('spotify-url-info')(fetch)
 
 export class Utils {
     static regexList = {
@@ -188,11 +187,7 @@ export class Utils {
         } else if (YouTubeLink) {
             let VideoID = this.parseVideo(Search);
             if (!VideoID) throw DMPErrors.SEARCH_NULL;
-            YouTube = new Client({
-                requestOptions: {
-                    localAddress: SOptions.localAddress
-                }
-            });
+            YouTube = new Client();
             let VideoResult = await YouTube.getVideo(VideoID) as IVideo;
             if (!VideoResult) throw DMPErrors.SEARCH_NULL;
             let VideoTimecode = this.parseVideoTimecode(Search);
@@ -310,7 +305,7 @@ export class Utils {
 
             let SpotifyResult: RawPlaylist = {
                 name: SpotifyResultData.name,
-                author: SpotifyResultData.type === 'playlist' ? SpotifyResultData.owner.display_name : SpotifyResultData.artists[0].name,
+                author: SpotifyResultData.subtitle,
                 url: Search,
                 songs: [],
                 type: SpotifyResultData.type
@@ -318,13 +313,11 @@ export class Utils {
 
             SpotifyResult.songs = (
                 await Promise.all(
-                    (SpotifyResultData.tracks?.items ?? []).map(async (track: any, index: number) => {
+                    SpotifyResultData.trackList.map(async (track: any, index: number) => {
                         if (Limit !== -1 && index >= Limit)
                             return null;
-                        if (SpotifyResult.type === 'playlist')
-                            track = track.track
                         const Result = await this.search(
-                            `${track.artists[0].name} - ${track.name}`,
+                            `${track.subtitle} - ${track.title}`,
                             SOptions,
                             Queue
                         ).catch(() => null);
@@ -349,11 +342,7 @@ export class Utils {
             if (!PlaylistID)
                 throw DMPErrors.INVALID_PLAYLIST;
 
-            YouTube = new Client({
-                requestOptions: {
-                    localAddress: SOptions.localAddress
-                }
-            });
+            YouTube = new Client();
             let YouTubeResultData = await YouTube.getPlaylist(PlaylistID);
             if (!YouTubeResultData || Object.keys(YouTubeResultData).length === 0)
                 throw DMPErrors.INVALID_PLAYLIST;
@@ -367,7 +356,7 @@ export class Utils {
             }
 
             if (YouTubeResultData instanceof IPlaylist && YouTubeResultData.videoCount > 100 && (Limit === -1 || Limit > 100))
-                await YouTubeResultData.next(Math.floor((Limit === -1 || Limit > YouTubeResultData.videoCount ? YouTubeResultData.videoCount : Limit - 1) / 100));
+                await YouTubeResultData.videos.next(Math.floor((Limit === -1 || Limit > YouTubeResultData.videoCount ? YouTubeResultData.videoCount : Limit - 1) / 100));
 
             YouTubeResult.songs = YouTubeResultData.videos.map((video: VideoCompact, index: number) => {
                 if (Limit !== -1 && index >= Limit)
@@ -383,7 +372,7 @@ export class Utils {
                 song.data = SOptions.data;
                 return song;
             })
-                .filter((V): V is Song => V !== null);
+                .filter((V: Song): V is Song => V !== null);
 
             if (YouTubeResult.songs.length === 0)
                 throw DMPErrors.INVALID_PLAYLIST;
