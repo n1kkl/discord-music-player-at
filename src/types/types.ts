@@ -62,7 +62,6 @@ export interface PlaylistOptions {
     requestedBy?: User,
     shuffle?: boolean,
     index?: number,
-    localAddress?: string
 };
 
 /**
