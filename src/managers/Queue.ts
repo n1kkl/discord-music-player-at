@@ -159,7 +159,7 @@ export class Queue<T = unknown> {
         this.connection
             .on('start', (resource) => {
                 this.isPlaying = true;
-                if (resource?.metadata?.isFirst && resource?.metadata?.seekTime === 0) {
+                if (resource?.metadata?.isFirst && resource?.metadata?.seekTime === 0 && resource?.metadata?.firstTimeInQueue) {
                     this.player.emit('songFirst', this, this.nowPlaying);
                     resource.metadata.flipFirstTimeInQueue()
                 } else if (resource?.metadata?.firstTimeInQueue) { //Needed if song played has ?t=
