@@ -29,9 +29,9 @@ Just that Git will say that I am not behind on any commits.
 
 | Version | Status and Information|
 ---|---|
-az22 | Latest - Based on DMP 9.1.1
-az19 - 21 | Active - Based on DMP 9.0.2
-az18 | Active - Last Native Discord.JS V13 - Based on  DMP 8.3.0
+az22 - 23 | Latest - Based on DMP 9.1.1
+az19 - 21 | Depracated - Based on DMP 9.0.2 - Discord Voice packet issue
+az18 | Deprecated - Last Native Discord.JS V13 - Based on  DMP 8.3.0
 az13 - az17 | Deprecated - Security issue in Discord Voice
 az1 - az12 | Non-Functional
 

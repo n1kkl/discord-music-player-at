@@ -57,9 +57,7 @@ export class StreamConnection extends EventEmitter {
         this.channel = channel;
 
         this.connection.on('stateChange', async (oldState, newState) => {
-            if (oldState.status === VoiceConnectionStatus.Ready && newState.status === VoiceConnectionStatus.Connecting) {
-                connection.configureNetworking();
-            } else if (newState.status === VoiceConnectionStatus.Disconnected) {
+            if (newState.status === VoiceConnectionStatus.Disconnected) {
                 if (this.connection) {
                     if (newState.reason === VoiceConnectionDisconnectReason.WebSocketClose && newState.closeCode === 4014) {
                         try {
