@@ -117,6 +117,8 @@ export class Utils {
                 Filters.url!,
                 {
                     limit: Limit,
+                    gl: 'AT',
+                    hl: 'de'
                 }
             );
 
